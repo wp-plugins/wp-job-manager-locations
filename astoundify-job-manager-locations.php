@@ -5,7 +5,7 @@
  * Description: Create predefined regions that job submissions can associate themselves with.
  * Author:      Astoundify
  * Author URI:  http://astoundify.com
- * Version:     1.1
+ * Version:     1.2
  * Text Domain: ajmr
  */
 
@@ -83,9 +83,6 @@ class Astoundify_Job_Manager_Regions {
 	 * @since 1.0
 	 */
 	public function register_post_taxonomy() {
-		if ( ! post_type_exists( 'job_listing' ) )
-			return;
-
 		$admin_capability = 'manage_job_listings';
 		
 		$singular  = __( 'Job Region', 'ajmr' );
@@ -156,7 +153,11 @@ class Astoundify_Job_Manager_Regions {
 	 * @since 1.0
 	 */
 	function update_job_data( $job_id, $values ) {
-		$region = $values[ 'job' ][ 'job_region' ];
+		$region = isset ( $values[ 'job' ][ 'job_region' ] ) ? $values[ 'job' ][ 'job_region' ] : null;
+
+		if ( ! $revion )
+			return;
+
 		$term   = get_term_by( 'slug', $region, 'job_listing_region' );
 
 		wp_set_post_terms( $job_id, array( $term->term_id ), 'job_listing_region', false );
@@ -173,7 +174,7 @@ class Astoundify_Job_Manager_Regions {
 
 		$terms = wp_get_post_terms( $post->ID, 'job_listing_region' );
 
-		if ( is_wp_error( $terms ) )
+		if ( is_wp_error( $terms ) || empty( $terms ) )
 			return $job_location;
 
 		$location = $terms[0];
