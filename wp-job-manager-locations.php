@@ -1,11 +1,11 @@
 <?php
 /**
  * Plugin Name: WP Job Manager - Predefined Regions
- * Plugin URI:  https://github.com/astoundify/wp-job-manager-colors
+ * Plugin URI:  https://github.com/astoundify/wp-job-manager-locations
  * Description: Create predefined regions that job submissions can associate themselves with.
  * Author:      Astoundify
  * Author URI:  http://astoundify.com
- * Version:     1.2
+ * Version:     1.3
  * Text Domain: ajmr
  */
 
@@ -71,6 +71,7 @@ class Astoundify_Job_Manager_Regions {
 		add_action( 'init', array( $this, 'register_post_taxonomy' ) );
 		add_filter( 'submit_job_form_fields', array( $this, 'form_fields' ) );
 		add_action( 'job_manager_update_job_data', array( $this, 'update_job_data' ), 10, 2 );
+		add_filter( 'submit_job_form_fields_get_job_data', array( $this, 'form_fields_get_job_data' ), 10, 2 );
 
 		add_filter( 'the_job_location', array( $this, 'the_job_location' ), 10, 2 );
 
@@ -148,6 +149,18 @@ class Astoundify_Job_Manager_Regions {
 	}
 
 	/**
+	 * Get the current value for the job region. We can't rely
+	 * on basic meta value getting, instead we need to find the term.
+	 *
+	 * @since 1.0
+	 */
+	function form_fields_get_job_data( $fields, $job ) {
+		$fields[ 'job' ][ 'job_region' ][ 'value' ] = current( wp_get_object_terms( $job->ID, 'job_listing_region', array( 'fields' => 'slugs' ) ) );
+
+		return $fields;
+	}
+
+	/**
 	 * When the form is submitted, update the data.
 	 *
 	 * @since 1.0
@@ -155,7 +168,7 @@ class Astoundify_Job_Manager_Regions {
 	function update_job_data( $job_id, $values ) {
 		$region = isset ( $values[ 'job' ][ 'job_region' ] ) ? $values[ 'job' ][ 'job_region' ] : null;
 
-		if ( ! $revion )
+		if ( ! $region )
 			return;
 
 		$term   = get_term_by( 'slug', $region, 'job_listing_region' );
@@ -260,6 +273,9 @@ function ajmr_get_regions_simple() {
  * @since 1.1
  */
 function ajmr_widgets_init() {
+	if ( ! class_exists( 'Jobify_Widget' ) )
+		return;
+		
 	$ajmr = ajmr();
 
 	include_once( $ajmr->plugin_dir . '/widgets.php' );
