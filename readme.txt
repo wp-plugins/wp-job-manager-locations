@@ -7,7 +7,7 @@ Contributors: SpencerFinnell
 Tags: job, job listing, job region
 Requires at least: 3.9
 Tested up to: 3.9
-Stable Tag: 1.3.2
+Stable Tag: 1.5.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -29,6 +29,14 @@ Astoundify has released the first fully integrated WP Job Manager theme. Check o
 == Frequently Asked Questions ==
 
 == Changelog ==
+
+= 1.5.0: September 9, 2014 =
+
+* New: Regions can now be used to filter listings instead of the standard location text field.
+
+= 1.4.0: May 22, 2014 =
+
+* New: Use a custom template so the select box can have hierarchy.
 
 = 1.3.1: January 20, 2014 =
 

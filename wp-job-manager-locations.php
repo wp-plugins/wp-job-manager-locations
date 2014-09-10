@@ -1,12 +1,12 @@
 <?php
 /**
  * Plugin Name: WP Job Manager - Predefined Regions
- * Plugin URI:  https://github.com/astoundify/wp-job-manager-locations
- * Description: Create predefined regions that job submissions can associate themselves with.
+ * Plugin URI:  https://github.com/astoundify/wp-job-manager-regions/
+ * Description: Create predefined regions/locations that job submissions can associate themselves with.
  * Author:      Astoundify
  * Author URI:  http://astoundify.com
- * Version:     1.3.1
- * Text Domain: ajmr
+ * Version:     1.5.0
+ * Text Domain: wp-job-manager-locations
  */
 
 // Exit if accessed directly
@@ -33,190 +33,175 @@ class Astoundify_Job_Manager_Regions {
 	/**
 	 * Start things up.
 	 *
-	 * @since 1.0
+	 * @since 1.0.0
 	 */
 	public function __construct() {
-		$this->setup_globals();
-		$this->setup_actions();
-	}
-
-	/**
-	 * Set some smart defaults to class variables. Allow some of them to be
-	 * filtered to allow for early overriding.
-	 *
-	 * @since 1.0
-	 *
-	 * @return void
-	 */
-	private function setup_globals() {
 		$this->file         = __FILE__;
+		$this->basename     = plugin_basename( $this->file );
+		$this->plugin_dir   = plugin_dir_path( $this->file );
+		$this->plugin_url   = plugin_dir_url ( $this->file );
+		$this->lang_dir     = trailingslashit( $this->plugin_dir . 'languages' );
+		$this->domain       = 'wp-job-manager-locations';
 
-		$this->basename     = apply_filters( 'ajmr_plugin_basenname', plugin_basename( $this->file ) );
-		$this->plugin_dir   = apply_filters( 'ajmr_plugin_dir_path',  plugin_dir_path( $this->file ) );
-		$this->plugin_url   = apply_filters( 'ajmr_plugin_dir_url',   plugin_dir_url ( $this->file ) );
+		$files = array(
+			'includes/class-taxonomy.php',
+			'includes/class-template.php',
+			'includes/class-widgets.php'
+		);
 
-		$this->lang_dir     = apply_filters( 'ajmr_lang_dir',     trailingslashit( $this->plugin_dir . 'languages' ) );
+		foreach ( $files as $file ) {
+			include_once( $this->plugin_dir . '/' . $file );
+		}
 
-		$this->domain       = 'ajmr';
+		$this->taxonomy = new Astoundify_Job_Manager_Regions_Taxonomy;
+		$this->template = new Astoundify_Job_Manager_Regions_Template;
+
+		$this->setup_actions();
 	}
 
 	/**
 	 * Setup the default hooks and actions
 	 *
-	 * @since 1.0
+	 * @since 1.0.0
 	 *
 	 * @return void
 	 */
 	private function setup_actions() {
-		add_action( 'init', array( $this, 'register_post_taxonomy' ) );
-		add_filter( 'submit_job_form_fields', array( $this, 'form_fields' ) );
-		add_action( 'job_manager_update_job_data', array( $this, 'update_job_data' ), 10, 2 );
-		add_filter( 'submit_job_form_fields_get_job_data', array( $this, 'form_fields_get_job_data' ), 10, 2 );
+		add_filter( 'job_manager_settings', array( $this, 'job_manager_settings' ) );
 
-		add_filter( 'the_job_location', array( $this, 'the_job_location' ), 10, 2 );
+		if ( get_option( 'job_manager_regions_filter' ) ) {
+			add_filter( 'job_manager_output_jobs_defaults', array( $this, 'job_manager_output_jobs_defaults' ) );
+			add_filter( 'job_manager_get_listings', array( $this, 'job_manager_get_listings' ) );
+			add_filter( 'job_manager_get_listings_args', array( $this, 'job_manager_get_listings_args' ) );
+		}
 
 		$this->load_textdomain();
 	}
 
 	/**
-	 * Create the `job_listing_region` taxonomy.
+	 * Add settings fields to select the appropriate form for each listing type.
 	 *
-	 * @since 1.0
-	 */
-	public function register_post_taxonomy() {
-		$admin_capability = 'manage_job_listings';
-
-		$singular  = __( 'Job Region', 'ajmr' );
-		$plural    = __( 'Job Regions', 'ajmr' );
-
-		if ( current_theme_supports( 'job-manager-templates' ) ) {
-			$rewrite     = array(
-				'slug'         => _x( 'job-region', 'Job region slug - resave permalinks after changing this', 'ajmr' ),
-				'with_front'   => false,
-				'hierarchical' => false
-			);
-		} else {
-			$rewrite = false;
-		}
-
-		register_taxonomy( 'job_listing_region',
-	        array( 'job_listing' ),
-	        array(
-	            'hierarchical' 			=> true,
-	            'update_count_callback' => '_update_post_term_count',
-	            'label' 				=> $plural,
-	            'labels' => array(
-                    'name' 				=> $plural,
-                    'singular_name' 	=> $singular,
-                    'search_items' 		=> sprintf( __( 'Search %s', 'ajmr' ), $plural ),
-                    'all_items' 		=> sprintf( __( 'All %s', 'ajmr' ), $plural ),
-                    'parent_item' 		=> sprintf( __( 'Parent %s', 'ajmr' ), $singular ),
-                    'parent_item_colon' => sprintf( __( 'Parent %s:', 'ajmr' ), $singular ),
-                    'edit_item' 		=> sprintf( __( 'Edit %s', 'ajmr' ), $singular ),
-                    'update_item' 		=> sprintf( __( 'Update %s', 'ajmr' ), $singular ),
-                    'add_new_item' 		=> sprintf( __( 'Add New %s', 'ajmr' ), $singular ),
-                    'new_item_name' 	=> sprintf( __( 'New %s Name', 'ajmr' ),  $singular )
-            	),
-	            'show_ui' 				=> true,
-	            'query_var' 			=> true,
-	            'has_archive'           => true,
-	            'capabilities'			=> array(
-	            	'manage_terms' 		=> $admin_capability,
-	            	'edit_terms' 		=> $admin_capability,
-	            	'delete_terms' 		=> $admin_capability,
-	            	'assign_terms' 		=> $admin_capability,
-	            ),
-	            'rewrite' 				=> $rewrite,
-	        )
-	    );
-	}
-
-	/**
-	 * Add the field to the submission form.
+	 * @since WP Job Manager - Predefiend Regions 1.4.1
 	 *
-	 * @since 1.0
+	 * @return void
 	 */
-	function form_fields( $fields ) {
-		$fields[ 'job' ][ 'job_region' ] = array(
-			'label'       => __( 'Job Region', 'job_manager' ),
-			'type'        => 'select',
-			'options'     => ajmr_get_regions_simple(),
-			'required'    => true,
-			'priority'    => '2.5'
+	public function job_manager_settings($settings) {
+		$settings[ 'job_listings' ][1][] = array(
+			'name'     => 'job_manager_regions_filter',
+			'std'      => '1',
+			'label'    => __( 'Job Regions', 'wp-job-manager-locations' ),
+			'cb_label' => __( 'Filter by Region', 'wp-job-manager-locations' ),
+			'desc'     => __( 'Use a dropdown instead of a text input.' ),
+			'type'     => 'checkbox'
 		);
 
-		return $fields;
+		return $settings;
+	}
+
+	public function job_manager_output_jobs_defaults( $defaults ) {
+		$defaults[ 'selected_region' ] = '';
+
+		if ( is_tax( 'job_listing_region' ) ) {
+			$type = get_queried_object();
+
+			$defaults[ 'show_categories' ] = true;
+			$defaults[ 'selected_region' ] = $type->term_id;
+		}
+
+		return $defaults;
+	}
+
+	public function job_manager_get_listings( $args ) {
+		$params = array();
+
+		if ( isset( $_POST[ 'form_data' ] ) ) {
+
+			parse_str( $_POST[ 'form_data' ], $params );
+
+			if ( isset( $params[ 'search_region' ] ) && 0 != $params[ 'search_region' ] ) {
+				$region = $params[ 'search_region' ];
+
+				if ( is_int( $region ) ) {
+					$region = array( $region );
+				}
+
+				$args[ 'tax_query' ][] = array(
+					'taxonomy' => 'job_listing_region',
+					'field'    => 'id',
+					'terms'    => $region,
+					'operator' => 'IN'
+				);
+
+				add_filter( 'job_manager_get_listings_custom_filter', '__return_true' );
+				add_filter( 'job_manager_get_listings_custom_filter_text', array( $this, 'custom_filter_text' ) );
+				add_filter( 'job_manager_get_listings_custom_filter_rss_args', array( $this, 'custom_filter_rss' ) );
+			}
+
+		}
+
+		return $args;
+	}
+
+	public function job_manager_get_listings_args( $args ) {
+		$params = array();
+
+		if ( isset( $_POST[ 'form_data' ] ) ) {
+
+			parse_str( $_POST[ 'form_data' ], $params );
+
+			if ( isset( $params[ 'search_region' ] ) && 0 != $params[ 'search_region' ] ) {
+				$args[ 'search_location' ] = ' ';
+			}
+
+		}
+
+		return $args;
 	}
 
 	/**
-	 * Get the current value for the job region. We can't rely
-	 * on basic meta value getting, instead we need to find the term.
-	 *
-	 * @since 1.0
+	 * Append 'showing' text
+	 * @return string
 	 */
-	function form_fields_get_job_data( $fields, $job ) {
-		$fields[ 'job' ][ 'job_region' ][ 'value' ] = current( wp_get_object_terms( $job->ID, 'job_listing_region', array( 'fields' => 'slugs' ) ) );
+	public function custom_filter_text( $text ) {
+		$params = array();
 
-		return $fields;
+		parse_str( $_POST[ 'form_data' ], $params );
+
+		$term = get_term( $params[ 'search_region' ], 'job_listing_region' );
+
+		$text .= sprintf( ' ' .  __( 'in %s', 'wp-job-manager-locations' ) . ' ', $term->name );
+
+		return $text;
 	}
 
 	/**
-	 * When the form is submitted, update the data.
-	 *
-	 * @since 1.0
+	 * apply_tag_filter_rss
+	 * @return array
 	 */
-	function update_job_data( $job_id, $values ) {
-		$region = isset ( $values[ 'job' ][ 'job_region' ] ) ? $values[ 'job' ][ 'job_region' ] : null;
+	public function custom_filter_rss( $args ) {
+		$params = array();
 
-		if ( ! $region )
-			return;
+		parse_str( $_POST[ 'form_data' ], $params );
 
-		$term   = get_term_by( 'slug', $region, 'job_listing_region' );
+		$args[ 'job_region' ] = $params[ 'search_region' ];
 
-		wp_set_post_terms( $job_id, array( $term->term_id ), 'job_listing_region', false );
-	}
-
-	/**
-	 * On a singular job page, append the region to the location.
-	 *
-	 * @since 1.0
-	 */
-	function the_job_location( $job_location, $post ) {
-		if ( ! is_singular( 'job_listing' ) )
-			return $job_location;
-
-		$terms = wp_get_post_terms( $post->ID, 'job_listing_region' );
-
-		if ( is_wp_error( $terms ) || empty( $terms ) )
-			return $job_location;
-
-		$location = $terms[0];
-		$locname  = $location->name;
-
-		$job_location = sprintf( '%s &mdash; <a href="%s">%s</a>', $job_location, get_term_link( $location, 'job_listing_region' ), $locname );
-
-		return apply_filters( 'ajmr_job_location', $job_location, $location );
+		return $args;
 	}
 
 	/**
 	 * Loads the plugin language files
 	 *
-	 * @since 1.0
+	 * @since 1.0.0
 	 */
 	public function load_textdomain() {
-		// Traditional WordPress plugin locale filter
-		$locale        = apply_filters( 'plugin_locale', get_locale(), $this->domain );
-		$mofile        = sprintf( '%1$s-%2$s.mo', $this->domain, $locale );
+		$locale = apply_filters( 'plugin_locale', get_locale(), $this->domain );
+		$mofile = sprintf( '%1$s-%2$s.mo', $this->domain, $locale );
 
-		// Setup paths to current locale file
-		$mofile_local  = $this->lang_dir . $mofile;
+		$mofile_local = $this->lang_dir . $mofile;
 		$mofile_global = WP_LANG_DIR . '/' . $this->domain . '/' . $mofile;
 
-		// Look in global /wp-content/languages/ajmr folder
 		if ( file_exists( $mofile_global ) ) {
 			return load_textdomain( $this->domain, $mofile_global );
-
-		// Look in local /wp-content/plugins/ajmr/languages/ folder
 		} elseif ( file_exists( $mofile_local ) ) {
 			return load_textdomain( $this->domain, $mofile_local );
 		}
@@ -224,6 +209,7 @@ class Astoundify_Job_Manager_Regions {
 		return false;
 	}
 }
+add_action( 'plugins_loaded', array( 'Astoundify_Job_Manager_Regions', 'instance' ) );
 
 /**
  * Start things up.
@@ -232,54 +218,8 @@ class Astoundify_Job_Manager_Regions {
  *
  * $ajmr = ajmr();
  *
- * @since 1.0
+ * @since 1.0.0
  */
-function ajmr() {
+function wp_job_manager_regions() {
 	return Astoundify_Job_Manager_Regions::instance();
 }
-
-ajmr();
-
-/**
- * Get regions (terms) helper.
- *
- * @since 1.0
- */
-function ajmr_get_regions() {
-	$locations = get_terms( 'job_listing_region', apply_filters( 'ajmr_get_region_args', array( 'hide_empty' => 0 ) ) );
-
-	return $locations;
-}
-
-/**
- * Create a key => value pair of term ID and term name.
- *
- * @since 1.0
- */
-function ajmr_get_regions_simple() {
-	$locations = ajmr_get_regions();
-	$simple    = array();
-
-	foreach ( $locations as $location ) {
-		$simple[ $location->slug ] = $location->name;
-	}
-
-	return apply_filters( 'ajmr_get_regions_simple', $simple );
-}
-
-/**
- * Custom widgets
- *
- * @since 1.1
- */
-function ajmr_widgets_init() {
-	if ( ! class_exists( 'Jobify_Widget' ) )
-		return;
-
-	$ajmr = ajmr();
-
-	include_once( $ajmr->plugin_dir . '/widgets.php' );
-
-	register_widget( 'Astoundify_Job_Manager_Regions_Widget' );
-}
-add_action( 'after_setup_theme', 'ajmr_widgets_init', 11 );
