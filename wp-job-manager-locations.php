@@ -5,7 +5,7 @@
  * Description: Create predefined regions/locations that job submissions can associate themselves with.
  * Author:      Astoundify
  * Author URI:  http://astoundify.com
- * Version:     1.5.1
+ * Version:     1.5.2
  * Text Domain: wp-job-manager-locations
  */
 
@@ -69,11 +69,9 @@ class Astoundify_Job_Manager_Regions {
 	private function setup_actions() {
 		add_filter( 'job_manager_settings', array( $this, 'job_manager_settings' ) );
 
-		if ( get_option( 'job_manager_regions_filter' ) ) {
-			add_filter( 'job_manager_output_jobs_defaults', array( $this, 'job_manager_output_jobs_defaults' ) );
-			add_filter( 'job_manager_get_listings', array( $this, 'job_manager_get_listings' ) );
-			add_filter( 'job_manager_get_listings_args', array( $this, 'job_manager_get_listings_args' ) );
-		}
+		add_filter( 'job_manager_output_jobs_defaults', array( $this, 'job_manager_output_jobs_defaults' ) );
+		add_filter( 'job_manager_get_listings', array( $this, 'job_manager_get_listings' ) );
+		add_filter( 'job_manager_get_listings_args', array( $this, 'job_manager_get_listings_args' ) );
 
 		$this->load_textdomain();
 	}
@@ -88,7 +86,7 @@ class Astoundify_Job_Manager_Regions {
 	public function job_manager_settings($settings) {
 		$settings[ 'job_listings' ][1][] = array(
 			'name'     => 'job_manager_regions_filter',
-			'std'      => '1',
+			'std'      => '0',
 			'label'    => __( 'Job Regions', 'wp-job-manager-locations' ),
 			'cb_label' => __( 'Filter by Region', 'wp-job-manager-locations' ),
 			'desc'     => __( 'Use a dropdown instead of a text input.' ),

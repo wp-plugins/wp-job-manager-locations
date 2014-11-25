@@ -12,6 +12,8 @@ class Astoundify_Job_Manager_Regions_Template extends Astoundify_Job_Manager_Reg
 		if ( get_option( 'job_manager_regions_filter' ) ) {
 			add_action( 'wp_enqueue_scripts', array( $this, 'wp_enqueue_scripts' ) );
 			add_action( 'job_manager_job_filters_search_jobs_end', array( $this, 'job_manager_job_filters_search_jobs_end' ) );
+		} else {
+			add_action( 'job_manager_job_filters_search_jobs_end', array( $this, 'tax_archive_field' ) );
 		}
 	}
 
@@ -60,10 +62,20 @@ class Astoundify_Job_Manager_Regions_Template extends Astoundify_Job_Manager_Reg
 			'taxonomy' => 'job_listing_region',
 			'name' => 'search_region',
 			'class' => 'search_region',
-			'hide_empty' => false,
+			'hide_empty' => 0,
 			'selected' => isset( $atts[ 'selected_region' ] ) ? $atts[ 'selected_region' ] : ''
 		) );
 	}
+
+	public function tax_archive_field( $atts ) {
+		if ( ( ! isset( $atts[ 'selected_region' ] ) || '' == $atts[ 'selected_region' ] ) && isset( $_GET[ 'search_region' ] ) ) {
+			$atts[ 'selected_region' ] = absint( $_GET[ 'search_region' ] );
+		}
+
+		echo '<input type="hidden" name="search_region" class="search_region" value="' . $atts[
+		'selected_region' ]. '" />';
+	}
+
 
 	/**
 	 * Replace location output with the region.
