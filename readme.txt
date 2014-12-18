@@ -3,11 +3,11 @@
 Author URI: http://astoundify.com
 Plugin URI: http://astoundify.com
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=contact@appthemer.com&item_name=Donation+for+Astoundify WP Job Manager Regions
-Contributors: SpencerFinnell
+Contributors: Astoundify, SpencerFinnell
 Tags: job, job listing, job region
-Requires at least: 3.9.0
-Tested up to: 4.0.0
-Stable Tag: 1.5.2
+Requires at least: 3.6
+Tested up to: 4.1
+Stable Tag: 1.6.0
 License: GPLv3
 License URI: http://www.gnu.org/licenses/gpl-3.0.html
 
@@ -17,9 +17,11 @@ Add predefined regions to WP Job Manager submission form.
 
 Adds a "Job Region" taxonomy so the site administrator can control a set of predefined regions listings can be assigned to.
 
+**Note:** Listings are not filtered by regions. They are simply used as an organization tool.
+
 = Where can I use this? =
 
-Astoundify has released the first fully integrated WP Job Manager theme. Check out ["Jobify"](http://themeforest.net/item/jobify-job-board-wordpress-theme/5247604?ref=Astoundify)
+Astoundify has released two themes that are fully integrated with the WP Job Manager plugin. Check out ["Jobify"](http://themeforest.net/item/jobify-job-board-wordpress-theme/5247604?ref=Astoundify) and our WordPress Directory theme ["Listify"](http://themeforest.net/item/listify-wordpress-directory-theme/9602611?ref=Astoundify)
 
 == Installation ==
 
@@ -29,6 +31,12 @@ Astoundify has released the first fully integrated WP Job Manager theme. Check o
 == Frequently Asked Questions ==
 
 == Changelog ==
+
+= 1.6.0: December 17, 2014 =
+
+* New: Add a class to the theme's body tag so the location field can be hidden on term archive pages when filters are off.
+* New: Add a filter to allow dropdown arguments to be modified.
+* Fix: General code cleanup.
 
 = 1.5.2: November 25, 2014 =
 

@@ -3,9 +3,6 @@
 class Astoundify_Job_Manager_Regions_Template extends Astoundify_Job_Manager_Regions {
 
 	public function __construct() {
-		// Template loader
-		add_filter( 'job_manager_locate_template', array( $this, 'locate_template' ), 10, 3 );
-
 		add_filter( 'submit_job_form_fields', array( $this, 'submit_job_form_fields' ) );
 		add_filter( 'the_job_location', array( $this, 'the_job_location' ), 10, 2 );
 
@@ -14,29 +11,19 @@ class Astoundify_Job_Manager_Regions_Template extends Astoundify_Job_Manager_Reg
 			add_action( 'job_manager_job_filters_search_jobs_end', array( $this, 'job_manager_job_filters_search_jobs_end' ) );
 		} else {
 			add_action( 'job_manager_job_filters_search_jobs_end', array( $this, 'tax_archive_field' ) );
+			add_filter( 'body_class', array( $this, 'body_class' ) );
 		}
 	}
 
-	public function locate_template( $template, $template_name, $template_path ) {
-		global $job_manager;
-
-		if ( ! file_exists( $template ) ) {
-			$default_path = wp_job_manager_regions()->plugin_dir . '/templates/';
-
-			$template = $default_path . $template_name;
-		}
-
-		return $template;
-	}
-
+	/** 
+	 * Frontend scripts.
+	 */
 	public function wp_enqueue_scripts() {
 		wp_enqueue_script( 'job-regions', wp_job_manager_regions()->plugin_url . '/assets/js/main.js', array( 'jquery' ), 20140525, true );
 	}
 
 	/**
 	 * Add the field to the submission form.
-	 *
-	 * @since 1.0.0
 	 */
 	public function submit_job_form_fields( $fields ) {
 		$fields[ 'job' ][ 'job_region' ] = array(
@@ -51,12 +38,15 @@ class Astoundify_Job_Manager_Regions_Template extends Astoundify_Job_Manager_Reg
 		return $fields;
 	}
 
+	/**
+	 * Add the field to the filters
+	 */
 	public function job_manager_job_filters_search_jobs_end( $atts ) {
 		if ( ( ! isset( $atts[ 'selected_region' ] ) || '' == $atts[ 'selected_region' ] ) && isset( $_GET[ 'search_region' ] ) ) {
 			$atts[ 'selected_region' ] = absint( $_GET[ 'search_region' ] );
 		}
 
-		wp_dropdown_categories( array(
+		wp_dropdown_categories( apply_filters( 'job_manager_regions_dropdown_args', array(
 			'show_option_all' => __( 'All Regions', 'wp-job-manager-locations' ),
 			'hierarchical' => true,
 			'taxonomy' => 'job_listing_region',
@@ -64,9 +54,13 @@ class Astoundify_Job_Manager_Regions_Template extends Astoundify_Job_Manager_Reg
 			'class' => 'search_region',
 			'hide_empty' => 0,
 			'selected' => isset( $atts[ 'selected_region' ] ) ? $atts[ 'selected_region' ] : ''
-		) );
+		) ) );
 	}
 
+	/**
+	 * If we are not using regions on the filter set a hidden field so the AJAX
+	 * call still only looks in that area.
+	 */
 	public function tax_archive_field( $atts ) {
 		if ( ( ! isset( $atts[ 'selected_region' ] ) || '' == $atts[ 'selected_region' ] ) && isset( $_GET[ 'search_region' ] ) ) {
 			$atts[ 'selected_region' ] = absint( $_GET[ 'search_region' ] );
@@ -76,6 +70,17 @@ class Astoundify_Job_Manager_Regions_Template extends Astoundify_Job_Manager_Reg
 		'selected_region' ]. '" />';
 	}
 
+	/**
+	 * If we are not using regions on the filter set a body class so themes can hide the text
+	 * input field so they don't have false thoughts about searching.
+	 */
+	public function body_class( $classes ) {
+		if ( is_tax( 'job_listing_region' ) ) {
+			$classes[] = 'wp-job-manager-regions-no-filter';
+		}
+
+		return $classes;
+	}
 
 	/**
 	 * Replace location output with the region.
@@ -83,15 +88,6 @@ class Astoundify_Job_Manager_Regions_Template extends Astoundify_Job_Manager_Reg
 	 * @since 1.0.0
 	 */
 	public function the_job_location( $job_location, $post ) {
-		$terms = wp_get_post_terms( $post->ID, 'job_listing_region' );
-
-		if ( is_wp_error( $terms ) || empty( $terms ) ) {
-			return $job_location;
-		}
-
-		$location = $terms[0];
-
-		return $location->name;
+		return get_the_term_list( $post->ID, 'job_listing_region', '', ', ', '' );
 	}
-
 }
