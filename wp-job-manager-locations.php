@@ -5,7 +5,7 @@
  * Description: Create predefined regions/locations that job submissions can associate themselves with.
  * Author:      Astoundify
  * Author URI:  http://astoundify.com
- * Version:     1.7.0
+ * Version:     1.7.1
  * Text Domain: wp-job-manager-locations
  */
 
@@ -96,7 +96,7 @@ class Astoundify_Job_Manager_Regions {
 		return $settings;
 	}
 
-	/** 
+	/**
 	 * Modify the default shortcode attributes for displaying listings.
 	 *
 	 * If we are on a listing region term archive set the selected_region so
@@ -122,9 +122,9 @@ class Astoundify_Job_Manager_Regions {
 	public function job_manager_get_listings( $args ) {
 		$params = array();
 
-		if ( isset( $_POST[ 'form_data' ] ) ) {
+		if ( isset( $_REQUEST[ 'form_data' ] ) ) {
 
-			parse_str( $_POST[ 'form_data' ], $params );
+			parse_str( $_REQUEST[ 'form_data' ], $params );
 
 			if ( isset( $params[ 'search_region' ] ) && 0 != $params[ 'search_region' ] ) {
 				$region = $params[ 'search_region' ];
@@ -146,6 +146,7 @@ class Astoundify_Job_Manager_Regions {
 			}
 
 		} elseif ( isset( $_GET[ 'selected_region' ] ) ) {
+
 			$region = $_GET[ 'selected_region' ];
 
 			if ( is_int( $region ) ) {
@@ -158,8 +159,20 @@ class Astoundify_Job_Manager_Regions {
 				'terms'    => $region,
 				'operator' => 'IN'
 			);
+
+		} elseif( isset( $_GET['alert_id'] ) ) { // WPJM Alerts support
+
+			$regions = wp_get_post_terms( $_GET['alert_id'], 'job_listing_region', array( 'fields' => 'ids' ) );
+			if ( ! empty( $regions ) ) {
+				$args[ 'tax_query' ][] = array(
+					'taxonomy' => 'job_listing_region',
+					'field'    => 'id',
+					'terms'    => $regions,
+					'operator' => 'IN'
+				);
+			}
+
 		}
-																	
 
 		return $args;
 	}
@@ -171,9 +184,9 @@ class Astoundify_Job_Manager_Regions {
 	public function job_manager_get_listings_args( $args ) {
 		$params = array();
 
-		if ( isset( $_POST[ 'form_data' ] ) ) {
+		if ( isset( $_REQUEST[ 'form_data' ] ) ) {
 
-			parse_str( $_POST[ 'form_data' ], $params );
+			parse_str( $_REQUEST[ 'form_data' ], $params );
 
 			if ( isset( $params[ 'search_region' ] ) && 0 != $params[ 'search_region' ] ) {
 				$args[ 'search_location' ] = null;
@@ -185,12 +198,12 @@ class Astoundify_Job_Manager_Regions {
 	}
 
 	/**
-	 * Filter the AJAX to update the "showing" text. 
+	 * Filter the AJAX to update the "showing" text.
 	 */
 	public function custom_filter_text( $text ) {
 		$params = array();
 
-		parse_str( $_POST[ 'form_data' ], $params );
+		parse_str( $_REQUEST[ 'form_data' ], $params );
 
 		$term = get_term( $params[ 'search_region' ], 'job_listing_region' );
 
@@ -205,7 +218,7 @@ class Astoundify_Job_Manager_Regions {
 	public function custom_filter_rss( $args ) {
 		$params = array();
 
-		parse_str( $_POST[ 'form_data' ], $params );
+		parse_str( $_REQUEST[ 'form_data' ], $params );
 
 		$args[ 'job_region' ] = $params[ 'search_region' ];
 
